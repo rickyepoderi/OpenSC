@@ -27,6 +27,8 @@
 #include "libopensc/log.h"
 #include "libopensc/asn1.h"
 #include "libopensc/pkcs15.h"
+#include "libopensc/cwa14890.h"
+#include "libopensc/cwa-dnie.h"
 
 /* Card driver related */
 #ifdef ENABLE_OPENSSL
@@ -233,6 +235,10 @@ static int sc_pkcs15emu_dnie_init(sc_pkcs15_card_t * p15card)
 		    && (p15_obj->auth_id.len == 0)) {
 			p15_obj->auth_id.value[0] = 0x01;
 			p15_obj->auth_id.len = 1;
+			if (p15card->card->atr.value[15] >= DNIE_30_VERSION) {
+				/* For DNIe 3.0 private keys add CKA_ALWAYS_AUTHENTICATE */
+				p15_obj->user_consent = 1;
+			}
 		};
 		/* Set path count to -1 for public certificates, as they
 		   will need to be decompressed and read_binary()'d, so
