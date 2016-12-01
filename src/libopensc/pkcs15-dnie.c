@@ -27,6 +27,8 @@
 #include "libopensc/log.h"
 #include "libopensc/asn1.h"
 #include "libopensc/pkcs15.h"
+#include "libopensc/cwa14890.h"
+#include "libopensc/cwa-dnie.h"
 
 /* Card driver related */
 #ifdef ENABLE_OPENSSL
@@ -228,11 +230,17 @@ static int sc_pkcs15emu_dnie_init(sc_pkcs15_card_t * p15card)
 	/* Perform required fixes */
 	p15_obj = p15card->obj_list;
 	while (p15_obj != NULL) {
-		/* Add missing 'auth_id' to private objects */
-		if ((p15_obj->flags & SC_PKCS15_CO_FLAG_PRIVATE)
-		    && (p15_obj->auth_id.len == 0)) {
-			p15_obj->auth_id.value[0] = 0x01;
-			p15_obj->auth_id.len = 1;
+		if (p15_obj->flags & SC_PKCS15_CO_FLAG_PRIVATE) {
+			/* Add missing 'auth_id' to private objects */
+			if (p15_obj->auth_id.len == 0) {
+				p15_obj->auth_id.value[0] = 0x01;
+				p15_obj->auth_id.len = 1;
+			}
+			/* Add CKA_ALWAYS_AUTHENTICATE to DNIe 3.0 non-repudiation keys */
+			if (((struct sc_pkcs15_prkey_info *) p15_obj->data)->usage & SC_PKCS15_PRKEY_USAGE_NONREPUDIATION
+			    && p15card->card->atr.value[15] >= DNIE_30_VERSION) {
+				p15_obj->user_consent = 1;
+			}
 		};
 		/* Set path count to -1 for public certificates, as they
 		   will need to be decompressed and read_binary()'d, so
