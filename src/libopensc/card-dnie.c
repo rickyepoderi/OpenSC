@@ -750,9 +750,11 @@ static int dnie_sm_free_wrapped_apdu(struct sc_card *card,
 		struct sc_apdu *plain, struct sc_apdu **sm_apdu)
 {
 	struct sc_context *ctx = card->ctx;
+	cwa_provider_t *provider = NULL;
 	int rv = SC_SUCCESS;
 
 	LOG_FUNC_CALLED(ctx);
+	provider = GET_DNIE_PRIV_DATA(card)->cwa_provider;
 	if (!sm_apdu)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);
 	if (!(*sm_apdu))
@@ -769,6 +771,7 @@ static int dnie_sm_free_wrapped_apdu(struct sc_card *card,
 		}
 
 		free(*sm_apdu);
+		rv = cwa_decode_response(card, provider, plain);
 	}
 	*sm_apdu = NULL;
 
